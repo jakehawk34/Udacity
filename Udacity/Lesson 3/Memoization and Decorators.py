@@ -56,6 +56,7 @@ def trace(f):
 
 #Fibonacci function for nth term in the sequence
 @countcalls
+@memo
 @trace
 def fib(n): 
     if n <= 1:
@@ -63,7 +64,7 @@ def fib(n):
     else:
         return fib(n - 1) + fib(n - 2)
 
-fib(6)
+fib(30)
 
 
 for f, count in callcounts.items():
