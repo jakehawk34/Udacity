@@ -1,4 +1,6 @@
 import re
+from functools import update_wrapper
+
 
 
 def grammar(description, whitespace=r'\s*'):
@@ -10,6 +12,28 @@ def grammar(description, whitespace=r'\s*'):
         alternatives = split(rhs, ' | ')
         G[lhs] = tuple(map(split, alternatives))
     return G
+
+def decorator(d):
+    #Make function d a decorator: d wraps a function fn
+    def _d(fn):
+        return update_wrapper(d(fn), fn)
+    update_wrapper(_d, d)
+    return _d
+
+@decorator
+def memo(f):
+    #Decorator that caches the return value for each call to f(args)
+    #Whenever it is called again with the same args, we can just look it up
+    cache = {}
+    def _f(*args):
+        try:
+            return cache[args]
+        except KeyError:
+            cache[args] = result = f(*args)
+            return result
+        except TypeError:
+            return f(args)
+    return _f
 
 def split(text, sep=None, maxsplit=-1):
     #Similar to str.split applied to text,
@@ -34,6 +58,7 @@ def parse(start_symbol, text, grammar):
             result.append(tree)
         return result, text
 
+    @memo
     def parse_atom(atom, text):
         if atom in grammar: #Non-Terminal: tuple of alternatives
             for alternative in grammar[atom]:
