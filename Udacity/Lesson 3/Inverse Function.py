@@ -32,7 +32,7 @@ def slow_inverse(f, delta=1/128.):
         while f(x) < y:
             x += delta
         # Now x is too big, x-delta is too small; pick the closest to y
-        return x if (f(x)-y < y-f(x-delta)) else x-delta
+        return x if (f(x)-y < y-f(x-delta)) else x - delta
     return f_1 
 
 #Approximates the square root of a number
