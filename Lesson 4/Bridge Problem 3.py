@@ -34,26 +34,7 @@ def bridge_problem3(here):
         here, there = state
         return not here or here == set('light')
 
-    return lowest_cost_search(start, bsuccessors2, all_over, bcost)
-
-def bridge_problem2(here):
-    here = frozenset(here) | frozenset(['light'])
-    explored = set() #set of states we have visited
-    #State is (peoplelight-here, peoplelight-there) tuple
-    frontier = [ [(here, frozenset())] ] #ordered list of paths
-    while frontier:
-        path = frontier.pop(0) #Pop the first element from frontier
-        here1, there1 = state1 = final_state(path) #Test after popping off
-        if not here1 or (len(here1)==1 and 'light' in here1):
-            return path
-        explored.add(state1)
-        pcost = path_cost(path)
-        for (state, action) in bsuccessors2(state1).items():
-            if state not in explored:
-                total_cost = pcost + bcost(action)
-                path2 = path + [(action, total_cost), state]
-                add_to_frontier(frontier, path2)
-    return []
+    return lowest_cost_search(start, bsuccessors3, all_over, bcost)
 
 def final_state(path): 
     return path[-1]
@@ -76,23 +57,25 @@ def add_to_frontier(frontier, path):
 def elapsed_time(path):
     return path[-1][2]
 
-def bsuccessors2(state):
+def bsuccessors3(state):
+    '''Return a dict of {state:action} pairs. State is (here, there, light)
+    where here and there are frozen sets of people, light is 0 if the light is
+    on the here side and 1 if it is on the there side.
+    Action is a tuple (travelers, arrow) where arrow is '->' or '<-'. '''
+    _, _, light = state
+    return dict(bsuccessor3(state, set([a, b])) 
+        for a in state[light]
+        for b in state[light])
 
-    here, there = state
-
-    if 'light' in here:
-        return dict(((here - frozenset([a, b, 'light']), 
-            there | frozenset([a, b, 'light'])), 
-            (a, b, '->')) 
-            for a in here if a != 'light' 
-            for b in here if b != 'light')
-    #If the light is there, the person or people will move to here
+def bsuccessor3(state, travelers):
+    #The single successor when this set of travelers move
+    _, _, light = state
+    start = state[light] - travelers
+    dest = state[1 - light] | travelers
+    if light == 0:
+        return (start, dest, 1), (travelers, '->')
     else:
-        return dict(((here | frozenset([a, b, 'light']),
-            there - frozenset([a, b, 'light'])),
-            (a, b, '<-'))
-            for a in there if a != 'light'
-            for b in there if b != 'light')
+        return (dest, start, 0), (travelers, '<-')
 
 #Return a list of the states for a path
 def path_states(path):
@@ -115,8 +98,3 @@ def path_cost(path):
 def bcost(action):
     a, b, arrow = action
     return max(a, b)
-
-test = bridge_problem3([1, 2, 5, 10])
-
-print(path_actions(test))
-print(path_cost(test))
