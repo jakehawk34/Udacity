@@ -1,4 +1,5 @@
 from functools import update_wrapper
+import random
 
 other = {1: 0, 0: 1}
 
@@ -24,6 +25,11 @@ def memo(f):
             return f(args)
     return _f
 
+def dierolls():
+    while True:
+        d = random.randint(1, 6)
+        yield d
+
 def hold(state):
     """Apply the hold action to a state to yield a new state:
     Reap the 'pending' points and it becomes the other player's turn."""
@@ -44,10 +50,10 @@ def roll(state, d):
 def Q_pig(state, action, Pwin):
     #The expected value (quality) of choosing action in a state.
     if action == 'hold':
-        print(f"expected value of holding from this state: {1 - Pwin(hold(state))}")
+        #print(f"expected value of holding from this state: {1 - Pwin(hold(state))}")
         return 1 - Pwin(hold(state))
     elif action == 'roll':
-        print(f"expected value of rolling from this state: {(1 - Pwin(roll(state, 1)) + sum(Pwin(roll(state, d)) for d in range(2, 7))) / 6}")
+        #print(f"expected value of rolling from this state: {(1 - Pwin(roll(state, 1)) + sum(Pwin(roll(state, d)) for d in range(2, 7))) / 6}")
         return (1 - Pwin(roll(state, 1)) 
             + sum(Pwin(roll(state, d)) for d in range(2, 7))) / 6
     raise ValueError
@@ -71,7 +77,7 @@ def Pwin(state):
     elif you >= goal:
         return 0
     else:
-        print(f"probability of winning from this state: {max(Q_pig(state, action, Pwin) for action in pig_actions(state))}")
+        #print(f"probability of winning from this state: {max(Q_pig(state, action, Pwin) for action in pig_actions(state))}")
         return max(Q_pig(state, action, Pwin) for action in pig_actions(state))
 
 def best_action(state, actions, Q, U):
@@ -79,7 +85,47 @@ def best_action(state, actions, Q, U):
     def EU(action): return Q(state, action, U)
     return max(actions(state), key=EU)
 
+@memo
+def win_diff(state):
+    "The utility of a state: here the winning differential (pos or neg)."
+    (p, me, you, pending) = state
+    if me + pending >= goal or you >= goal:
+        return (me + pending - you)
+    else:
+        return max(Q_pig(state, action, win_diff)
+                   for action in pig_actions(state))
+
+def max_diffs(state):
+    """A strategy that maximizes the expected difference between my final score
+    and my opponent's."""
+    return best_action(state, pig_actions, Q_pig, win_diff)
+
 def max_wins(state):
     return best_action(state, pig_actions, Q_pig, Pwin)
 
-print(max_wins((1, 30, 30, 5)))
+def play_pig(A, B, dierolls = dierolls()):
+    """Play a game of pig between two players, represented by their strategies.
+    Each time through the main loop we ask the current player for one decision,
+    which must be 'hold' or 'roll', and we update the state accordingly.
+    When one player's score exceeds the goal, return that player."""
+    
+    strategies = [A, B]
+    state = (0, 0, 0, 0)
+    while True:
+        (p, me, you, pending) = state
+        if me >= goal:
+            return strategies[p]
+        elif you >= goal:
+            return strategies[other[p]]
+        else:
+            action = strategies[p](state)
+            if action == 'hold':
+                state = hold(state)
+            elif action == 'roll':
+                state = roll(state, next(dierolls))
+            else:
+                return strategies[other[p]] #Didn't roll or hold? You lose!
+
+strategies = (max_wins, max_diffs)
+
+print(play_pig(strategies[0], strategies[1]).__name__)
