@@ -1,6 +1,4 @@
 # -----------------
-# User Instructions
-# 
 # This problem deals with the one-player game foxes_and_hens. This 
 # game is played with a deck of cards in which each card is labelled
 # as a hen 'H', or a fox 'F'. 
@@ -82,11 +80,11 @@ def superior(A, B=take5):
 
 def strategy(state):
     (score, yard, cards) = state
-    if cards.count('F') == 0:
+    if cards.count('F') == 0: #If there are no foxes left in the deck, wait until all cards are gone
         return 'wait'
-    elif yard < 3:
+    elif yard < 3: #If there are less than 3 hens in the yard, wait
         return 'wait'
-    else:
+    else: #Gather otherwise
         return 'gather'
 
 def test():
